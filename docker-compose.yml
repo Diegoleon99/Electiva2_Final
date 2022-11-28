@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+
+  database-servicio:
+    image: "postgres" # use latest official postgres version
+    env_file:
+      - ./database_postgresql/database.env # se configura postgres
+    volumes:
+      - ./database_postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql # persistir la informacion
+      - database-data:/var/lib/postgresql/data/
+    ports:
+      - "532:5432"
+    networks:
+      - app-tier
+    container_name: postgres_database
+
+  api:
+    restart: always
+    build:
+      dockerfile: docker/api.Dockerfile
+    volumes:
+      - ./api:/usr/src/app
+    ports:
+      - 5001:80
+    depends_on:
+      - database-servicio
+    networks:
+      - app-tier
+    environment:
+      - PYTHONUNBUFFERED=1
+    container_name: api
+  web-servicio:
+    restart: always
+    volumes:
+      - ./website:/usr/src/app
+    build:
+      dockerfile: docker/website.Dockerfile
+    ports:
+      - 5000:80
+    networks:
+      - app-tier
+    environment:
+      - PYTHONUNBUFFERED=1
+    container_name: website
+
+networks:
+  app-tier:
+    driver: bridge
+volumes:
+  database-data:
